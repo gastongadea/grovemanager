@@ -6,8 +6,8 @@
     }
   },
   "env": {
-    "REACT_APP_GOOGLE_API_KEY": "@google_api_key",
-    "REACT_APP_GOOGLE_SHEET_ID": "@google_sheet_id",
-    "REACT_APP_GOOGLE_APPS_SCRIPT_URL": "@google_apps_script_url"
+    "REACT_APP_GOOGLE_API_KEY": "AIzaSyDgOo8w4Y-YBLmD_w4R0tscQ60JMZXs7xc",
+    "REACT_APP_GOOGLE_SHEET_ID": "1WrFLSer4NyYDjmuPqvyhagsWfoAr1NkgY7HQyHjF7a8",
+    "REACT_APP_GOOGLE_APPS_SCRIPT_URL": "https://script.google.com/macros/s/AKfycbz_-K4jZQBuH8gsNMDjPZX-lCzRnhadpBwKLv5MdBcoAUfFH5vrKjIdjYWsZgTgvPOl/exec"
   }
 } 
