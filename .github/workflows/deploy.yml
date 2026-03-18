@@ -1,10 +1,10 @@
+# Desactivado: el frontend se deploya en Vercel, no en GitHub Pages.
+# Para volver a usar Pages: habilitar en repo Settings > Pages > Source = GitHub Actions
+# y cambiar "on" por push/pull_request a main.
 name: Deploy to GitHub Pages
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:  # Solo manual; no corre en push (deploy está en Vercel)
 
 permissions:
   contents: read
