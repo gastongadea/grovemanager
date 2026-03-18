@@ -201,7 +201,6 @@ class BackendApiService {
   }
 
   async saveInscripcionesBatch(inscripciones) {
-    const errors = [];
     if (!inscripciones || inscripciones.length === 0) {
       return { success: true, count: 0, errors: [] };
     }
@@ -268,16 +267,11 @@ class BackendApiService {
   }
 
   async getSheetInfo() {
-    try {
-      const users = await this._fetch('/api/users');
-      return {
-        title: 'Grovemgr (Backend)',
-        sheetId: 'backend',
-        sheets: [{ title: 'Data', sheetId: 0 }],
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      title: 'Grovemgr (Backend)',
+      sheetId: 'backend',
+      sheets: [{ title: 'Data', sheetId: 0 }],
+    };
   }
 
   async ensureSheetStructure() {
