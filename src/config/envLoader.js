@@ -19,6 +19,7 @@ try {
     REACT_APP_GOOGLE_PRIVATE_KEY: process.env.REACT_APP_GOOGLE_PRIVATE_KEY,
     REACT_APP_APP_NAME: process.env.REACT_APP_APP_NAME,
     REACT_APP_VERSION: process.env.REACT_APP_VERSION,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
     NODE_ENV: process.env.NODE_ENV,
   };
 } catch (error) {

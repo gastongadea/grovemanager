@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import Modal from 'react-modal';
 import localStorageService from './services/localStorageService';
-import googleSheetsService from './services/googleSheetsService';
+import dataService from './services/dataService';
 import { formatearFecha, esFinDeSemana, agregarDias, diferenciaDias } from './utils/dateUtils';
 import StatsComponent from './components/StatsComponent';
 import GoogleSheetsTest from './components/GoogleSheetsTest';
@@ -162,8 +162,8 @@ function App() {
   useEffect(() => {
     const cargarUsuarios = async () => {
       try {
-        if (googleSheetsService.isConfigured()) {
-          const usuarios = await googleSheetsService.getUsers();
+        if (dataService.isConfigured()) {
+          const usuarios = await dataService.getUsers();
           if (usuarios.length > 0) {
             setUsuariosDinamicos(usuarios);
           } else {
@@ -186,10 +186,10 @@ function App() {
 
   // Cargar Misa próximos 8 días para la barra principal
   const cargarMisaProximos7 = useCallback(async () => {
-    if (dias.length < 8 || !googleSheetsService.isConfigured()) return;
+    if (dias.length < 8 || !dataService.isConfigured()) return;
     const proximos7 = dias.slice(0, 8);
     try {
-      const data = await googleSheetsService.getMisaInscripciones(proximos7);
+      const data = await dataService.getMisaInscripciones(proximos7);
       setMisaProximos7(data);
     } catch (e) {
       console.warn('Error cargando Misa próximos 8:', e);
@@ -207,10 +207,10 @@ function App() {
 
   // Cargar próximos cumpleaños (30 días) en pantalla principal
   useEffect(() => {
-    if (!googleSheetsService.isConfigured() || iniciales) return;
+    if (!dataService.isConfigured() || iniciales) return;
     const cargar = async () => {
       try {
-        const lista = await googleSheetsService.getProximosCumpleanos(30);
+        const lista = await dataService.getProximosCumpleanos(30);
         setCumpleanosProximos(lista);
       } catch (e) {
         console.warn('Error cargando cumpleaños:', e);
@@ -234,13 +234,13 @@ function App() {
       try {
         let nuevaSel = {};
         
-        if (googleSheetsService.isConfigured()) {
+        if (dataService.isConfigured()) {
           // Cargar desde Google Sheets con timeout
           const timeoutPromise = new Promise((_, reject) => 
             setTimeout(() => reject(new Error('Timeout al cargar datos')), CONFIG.TIMEOUT_SYNC)
           );
           
-          const dataPromise = googleSheetsService.getUserInscripciones(iniciales, dias);
+          const dataPromise = dataService.getUserInscripciones(iniciales, dias);
           
           nuevaSel = await Promise.race([dataPromise, timeoutPromise]);
           setSyncStatus('');
@@ -330,9 +330,9 @@ function App() {
       });
 
       // 2. Si Google Sheets está configurado, también obtener datos de ahí
-      if (googleSheetsService.isConfigured()) {
+      if (dataService.isConfigured()) {
         try {
-          const sheetData = await googleSheetsService.getSheetData();
+          const sheetData = await dataService.getSheetData();
           
           // Procesar cada fila de Google Sheets
           for (let row = 1; row < sheetData.length; row++) {
@@ -417,10 +417,10 @@ function App() {
       });
       
       // Si Google Sheets está configurado, también obtener datos de ahí
-      if (googleSheetsService.isConfigured()) {
+      if (dataService.isConfigured()) {
         try {
           // Obtener datos de Google Sheets para hoy
-          const sheetData = await googleSheetsService.getSheetData();
+          const sheetData = await dataService.getSheetData();
           const hoyFormatted = `${new Date().getDate()}/${new Date().getMonth() + 1}/${new Date().getFullYear().toString().slice(-2)}`;
           
           // Buscar filas de hoy en Google Sheets
@@ -526,7 +526,7 @@ function App() {
       console.log('Obteniendo datos de Google Sheets para hoy...');
       
       // Obtener datos de Google Sheets (todos los usuarios)
-      const sheetData = await googleSheetsService.getSheetData(true); // forceRefresh = true para datos frescos
+      const sheetData = await dataService.getSheetData(true); // forceRefresh = true para datos frescos
       console.log('Datos de Google Sheets:', sheetData);
 
       if (!sheetData || sheetData.length === 0) {
@@ -773,11 +773,11 @@ function App() {
       console.log('🔄 Obteniendo datos existentes de Google Sheets...');
       // Obtener datos existentes de Google Sheets para comparar
       let datosExistentes = {};
-      const config = googleSheetsService.isConfigured();
+      const config = dataService.isConfigured();
       console.log(`🔍 DEBUG - Google Sheets configurado para lectura:`, config);
       if (config.read) {
         try {
-          datosExistentes = await googleSheetsService.getUserInscripciones(iniciales, dias);
+          datosExistentes = await dataService.getUserInscripciones(iniciales, dias);
           console.log('✅ Datos existentes obtenidos:', datosExistentes);
         } catch (error) {
           console.warn('⚠️ No se pudieron obtener datos existentes de Google Sheets:', error);
@@ -786,7 +786,7 @@ function App() {
         console.log('ℹ️ Google Sheets no está configurado, solo guardando localmente');
       }
       
-      const configWrite = googleSheetsService.isConfigured().write;
+      const configWrite = dataService.isConfigured().write;
       const inscripcionesToSync = [];
 
       console.log('🔄 Procesando días y comidas...');
@@ -819,7 +819,7 @@ function App() {
             
             if (configWrite && haCambiado) {
               inscripcionesToSync.push(inscripcion);
-            } else if (googleSheetsService.isConfigured().write && !haCambiado) {
+            } else if (dataService.isConfigured().write && !haCambiado) {
               console.log(`✅ ${dia} ${comida} ya está sincronizado con Google Sheets (valor: "${opcion}")`);
             }
           } else {
@@ -832,7 +832,7 @@ function App() {
       if (inscripcionesToSync.length > 0) {
         try {
           console.log(`🔄 Sincronizando ${inscripcionesToSync.length} cambios en Google Sheets (lote)...`);
-          const result = await googleSheetsService.saveInscripcionesBatch(inscripcionesToSync);
+          const result = await dataService.saveInscripcionesBatch(inscripcionesToSync);
           if (result.errors && result.errors.length > 0) {
             errores.push(...result.errors);
           }
@@ -1081,15 +1081,15 @@ function App() {
           try {
             // Obtener datos existentes de Google Sheets para comparar
             let datosExistentes = {};
-            if (googleSheetsService.isConfigured()) {
+            if (dataService.isConfigured()) {
               try {
-                datosExistentes = await googleSheetsService.getUserInscripciones(iniciales, dias);
+                datosExistentes = await dataService.getUserInscripciones(iniciales, dias);
               } catch (error) {
                 console.warn('No se pudieron obtener datos existentes de Google Sheets:', error);
               }
             }
             
-            const configWrite = googleSheetsService.isConfigured().write;
+            const configWrite = dataService.isConfigured().write;
             const inscripcionesToSync = [];
             for (const dia of dias) {
               for (const comida of ['Almuerzo', 'Cena']) {
@@ -1114,7 +1114,7 @@ function App() {
                   }
                   if (configWrite && haCambiado) {
                     inscripcionesToSync.push(inscripcion);
-                  } else if (googleSheetsService.isConfigured().write && !haCambiado) {
+                  } else if (dataService.isConfigured().write && !haCambiado) {
                     console.log(`✅ ${dia} ${comida} ya está sincronizado con Google Sheets (valor: "${opcion}")`);
                   }
                 }
@@ -1123,7 +1123,7 @@ function App() {
             if (inscripcionesToSync.length > 0) {
               try {
                 console.log(`🔄 Sincronizando ${inscripcionesToSync.length} cambios en Google Sheets (lote)...`);
-                const result = await googleSheetsService.saveInscripcionesBatch(inscripcionesToSync);
+                const result = await dataService.saveInscripcionesBatch(inscripcionesToSync);
                 if (result.errors && result.errors.length > 0) errores.push(...result.errors);
                 if (result.success && result.count > 0) {
                   console.log(`✅ Sincronizado en planilla: ${result.count} celdas`);
@@ -1200,8 +1200,8 @@ function App() {
     setShowMisaModal(true);
     setActualizandoMisa(true);
     try {
-      if (googleSheetsService.isConfigured()) {
-        const data = await googleSheetsService.getMisaInscripciones(dias);
+      if (dataService.isConfigured()) {
+        const data = await dataService.getMisaInscripciones(dias);
         setMisaSeleccion(data);
       } else {
         setMisaSeleccion({});
@@ -1217,10 +1217,10 @@ function App() {
   const handleMisaChange = useCallback(async (dia, valor) => {
     const nuevo = misaSeleccion[dia] === valor ? '' : valor;
     setMisaSeleccion(prev => ({ ...prev, [dia]: nuevo }));
-    if (googleSheetsService.isConfigured()) {
+    if (dataService.isConfigured()) {
       setActualizandoMisa(true);
       try {
-        await googleSheetsService.saveMisaInscripcion(dia, nuevo);
+        await dataService.saveMisaInscripcion(dia, nuevo);
         await cargarMisaProximos7();
       } catch (e) {
         mostrarMensaje('Error al guardar Misa en la planilla', 'error');
@@ -1315,49 +1315,45 @@ function App() {
       console.log('Setting actualizandoComidas to true');
       setActualizandoComidas(true);
 
-      // 1) Obtener inscripciones del usuario desde almacenamiento (pueden incluir días pasados)
-      console.log('Getting inscriptions for user:', iniciales);
-      const inscripcionesUsuario = localStorageService.getInscripcionesByIniciales(iniciales) || [];
-      console.log('Found inscriptions:', inscripcionesUsuario.length);
-      if (inscripcionesUsuario.length === 0) {
-        console.log('No inscriptions found, showing warning');
-        mostrarMensaje('No hay inscripciones previas para copiar', 'warning');
-        return;
-      }
-
-      // 2) Armar mapa fecha -> { Almuerzo, Cena } desde LocalStorage
+      // 1) Armar mapa fecha -> { Almuerzo, Cena } únicamente desde la planilla actual
+      //    (la planilla es la fuente de verdad; si se borró algo manualmente, se respeta)
       const porFecha = {};
-      for (const item of inscripcionesUsuario) {
-        const fechaISO = item.fecha;
-        if (!porFecha[fechaISO]) porFecha[fechaISO] = { Almuerzo: '', Cena: '' };
-        if (item.comida === 'Almuerzo') porFecha[fechaISO].Almuerzo = item.opcion ?? '';
-        if (item.comida === 'Cena') porFecha[fechaISO].Cena = item.opcion ?? '';
-      }
-
-      // 2.b) Si Google Sheets está configurado para lectura, fusionar con histórico de Sheets (incluye días pasados no visibles)
       try {
-        const cfg = googleSheetsService.isConfigured();
-        if (cfg && cfg.read) {
-          const sheetData = await googleSheetsService.getSheetData();
-          const userCol = googleSheetsService.findUserColumn(sheetData, iniciales);
-          if (userCol) {
-            for (let row = 1; row < sheetData.length; row++) {
-              const rowData = sheetData[row];
-              if (!rowData || rowData.length < 3) continue;
-              const fechaISO = googleSheetsService.parseDate(rowData[1]);
-              const tipo = rowData[2] ? rowData[2].toString().trim().toUpperCase() : '';
-              if (!fechaISO || (tipo !== 'A' && tipo !== 'C')) continue;
-              const valor = rowData[userCol.col] ? rowData[userCol.col].toString().trim() : '';
-              if (!porFecha[fechaISO]) porFecha[fechaISO] = { Almuerzo: '', Cena: '' };
-              if (valor !== '') {
-                if (tipo === 'A') porFecha[fechaISO].Almuerzo = porFecha[fechaISO].Almuerzo || valor;
-                if (tipo === 'C') porFecha[fechaISO].Cena = porFecha[fechaISO].Cena || valor;
-              }
-            }
-          }
+        const cfg = dataService.isConfigured();
+        if (!cfg || !cfg.read) {
+          console.log('Sheets no configurado para lectura, aborting x7');
+          mostrarMensaje('La función x7 requiere conexión de lectura a la planilla', 'warning');
+          return;
         }
+
+        console.log('Leyendo inscripciones históricas desde Google Sheets para:', iniciales);
+        const sheetData = await dataService.getSheetData();
+        const userCol = dataService.findUserColumn(sheetData, iniciales);
+        if (!userCol) {
+          console.log('No se encontró columna para usuario en la planilla');
+          mostrarMensaje('No se encontraron datos en la planilla para este usuario', 'warning');
+          return;
+        }
+
+        for (let row = 1; row < sheetData.length; row++) {
+          const rowData = sheetData[row];
+          if (!rowData || rowData.length < 3) continue;
+          const fechaISO = dataService.parseDate(rowData[1]);
+          const tipo = rowData[2] ? rowData[2].toString().trim().toUpperCase() : '';
+          if (!fechaISO || (tipo !== 'A' && tipo !== 'C')) continue;
+          const valor = rowData[userCol.col] ? rowData[userCol.col].toString().trim() : '';
+          if (!valor) continue; // si la celda está vacía en Sheets, la consideramos vacía
+
+          if (!porFecha[fechaISO]) porFecha[fechaISO] = { Almuerzo: '', Cena: '' };
+          if (tipo === 'A') porFecha[fechaISO].Almuerzo = valor;
+          if (tipo === 'C') porFecha[fechaISO].Cena = valor;
+        }
+
+        console.log('Mapa porFecha construido SOLO desde Google Sheets:', porFecha);
       } catch (e) {
-        console.warn('No se pudieron leer inscripciones históricas de Google Sheets:', e);
+        console.warn('Error leyendo inscripciones desde Google Sheets para x7:', e);
+        mostrarMensaje('No se pudieron leer las inscripciones desde la planilla', 'error');
+        return;
       }
 
       // 3) Fechas con alguna selección hecha
@@ -1731,7 +1727,7 @@ function App() {
               width: '100%'
             }}>
               <h3 style={{ margin: 0, color: 'var(--primary-color)', fontSize: '16px' }}>
-                👥 Selecciona tus iniciales
+                👥 Iniciales
               </h3>
               
               {/* Botón Hoy - solo visible cuando se muestran todas las iniciales y no se está mostrando la vista Hoy */}
@@ -1856,6 +1852,41 @@ function App() {
                 }}
               >
                 R
+              </button>
+
+              {/* Botón x7 - Repetir últimos 7 días a los próximos 7 */}
+              <button
+                type="button"
+                onClick={handleRepetirSemana}
+                title="Copiar los últimos 7 días con comidas a los 7 días siguientes"
+                style={{
+                  fontSize: '13px',
+                  padding: '8px 10px',
+                  borderRadius: '8px',
+                  border: '2px solid #e8d5c4',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  background: 'linear-gradient(135deg, #fff 0%, #f8f9fa 100%)',
+                  color: '#2c1810',
+                  boxShadow: 'none',
+                  marginLeft: '6px',
+                  minWidth: '40px',
+                  fontWeight: 'bold'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)';
+                  e.target.style.borderColor = '#1976d2';
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 16px rgba(25, 118, 210, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'linear-gradient(135deg, #fff 0%, #f8f9fa 100%)';
+                  e.target.style.borderColor = '#e8d5c4';
+                  e.target.style.transform = 'none';
+                  e.target.style.boxShadow = 'none';
+                }}
+              >
+                7+
               </button>
 
               {/* Mensajes de estado en el centro */}
@@ -2379,7 +2410,7 @@ function App() {
         </div> */}
         
         {/* Estado de sincronización (solo mostrar si hay problemas) */}
-        {!googleSheetsService.isConfigured() && (
+        {!dataService.isConfigured() && (
           <div className="notification warning" style={{ 
             position: 'static',
             marginBottom: '12px',
@@ -2874,7 +2905,7 @@ function App() {
         onClose={() => setShowSyncDebugger(false)}
         syncStatus={syncStatus}
         syncErrors={syncErrors}
-        useGoogleSheets={googleSheetsService.isConfigured()}
+        useGoogleSheets={dataService.isConfigured()}
         iniciales={iniciales}
         seleccion={seleccion}
       />
