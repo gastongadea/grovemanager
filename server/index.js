@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
@@ -7,6 +9,8 @@ const misaRouter = require('./routes/misa');
 const cumpleanosRouter = require('./routes/cumpleanos');
 const sheetDataRouter = require('./routes/sheetData');
 const datesRouter = require('./routes/dates');
+const { migrate } = require('./migrate');
+const { seedDefaultUsers } = require('./seed');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,17 +29,16 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true });
 });
 
-// Seed inicial: si no hay usuarios, crear lista por defecto (opcional)
-const userCount = db.prepare('SELECT COUNT(*) as n FROM users').get();
-if (userCount.n === 0) {
-  const defaultUsers = [
-    'MEP', 'GG', 'IJC', 'MMR', 'LMC', 'PAB', 'JBA', 'IC', 'ELF', 'FIG', 'AS', 'FAM', 'JOA', 'FMA', 'JPS', 'FEC', 'TA', 'GGP', 'H1', 'H2', 'Invitados', 'Plan'
-  ];
-  const stmt = db.prepare('INSERT INTO users (iniciales, orden) VALUES (?, ?)');
-  defaultUsers.forEach((ini, i) => stmt.run(ini, i));
-  console.log('Usuarios por defecto insertados:', defaultUsers.length);
+async function start() {
+  await migrate(db);
+  await seedDefaultUsers(db);
+
+  app.listen(PORT, () => {
+    console.log(`Backend Grovemgr escuchando en http://localhost:${PORT}`);
+  });
 }
 
-app.listen(PORT, () => {
-  console.log(`Backend Grovemgr escuchando en http://localhost:${PORT}`);
+start().catch((err) => {
+  console.error('Error iniciando backend:', err);
+  process.exit(1);
 });

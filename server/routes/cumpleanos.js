@@ -35,10 +35,10 @@ function parseCumpleanosDate(val) {
 }
 
 /** GET /api/cumpleanos?dias=30 - Próximos cumpleaños en N días. Devuelve [{ inicial, fechaDisplay, edad }, ...] */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const dias = parseInt(req.query.dias, 10) || 30;
-    const rows = db.prepare('SELECT iniciales, fecha_nacimiento FROM cumpleanos').all();
+    const { rows } = await db.query('SELECT iniciales, fecha_nacimiento FROM cumpleanos');
 
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -73,16 +73,18 @@ router.get('/', (req, res) => {
 });
 
 /** POST /api/cumpleanos - body: { cumpleanos: [{ iniciales, fecha_nacimiento }, ...] } */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { cumpleanos } = req.body;
     if (!Array.isArray(cumpleanos)) return res.status(400).json({ error: 'Se requiere cumpleanos: array' });
-    const stmt = db.prepare(`
-      INSERT OR IGNORE INTO cumpleanos (iniciales, fecha_nacimiento) VALUES (?, ?)
-    `);
-    cumpleanos.forEach(c => {
-      if (c.iniciales && c.fecha_nacimiento) stmt.run(c.iniciales.trim(), String(c.fecha_nacimiento).trim());
-    });
+    for (const c of cumpleanos) {
+      if (!c.iniciales || !c.fecha_nacimiento) continue;
+      await db.query(
+        `INSERT INTO cumpleanos (iniciales, fecha_nacimiento) VALUES ($1, $2)
+         ON CONFLICT (iniciales, fecha_nacimiento) DO NOTHING`,
+        [c.iniciales.trim(), String(c.fecha_nacimiento).trim()]
+      );
+    }
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });

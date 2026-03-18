@@ -6,7 +6,7 @@ const router = express.Router();
 /** GET /api/inscripciones?iniciales=XX&start=YYYY-MM-DD&end=YYYY-MM-DD
  *  Devuelve { [fecha]: { Almuerzo: string, Cena: string } }
  */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { iniciales, start, end } = req.query;
     if (!iniciales) {
@@ -15,11 +15,14 @@ router.get('/', (req, res) => {
     const startDate = start || '2000-01-01';
     const endDate = end || '2100-12-31';
 
-    const rows = db.prepare(`
-      SELECT fecha, comida, opcion
-      FROM inscripciones
-      WHERE iniciales = ? AND fecha >= ? AND fecha <= ?
-    `).all(iniciales.trim(), startDate, endDate);
+    const { rows } = await db.query(
+      `
+        SELECT fecha, comida, opcion
+        FROM inscripciones
+        WHERE iniciales = $1 AND fecha >= $2 AND fecha <= $3
+      `,
+      [iniciales.trim(), startDate, endDate]
+    );
 
     const byDate = {};
     rows.forEach(r => {
@@ -38,25 +41,24 @@ router.get('/', (req, res) => {
  *  body: { changes: [{ fecha, comida, iniciales, opcion }, ...], ensureDates?: string[] }
  *  comida: "Almuerzo" | "Cena" (se guarda como A/C)
  */
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { changes = [], ensureDates } = req.body;
 
     if (ensureDates && Array.isArray(ensureDates)) {
-      const insertRow = db.prepare(`
-        INSERT OR IGNORE INTO filas_fecha (fecha, tipo) VALUES (?, ?)
-      `);
-      ensureDates.forEach(fecha => {
-        insertRow.run(fecha, 'A');
-        insertRow.run(fecha, 'C');
-      });
+      for (const fecha of ensureDates) {
+        await db.query(
+          `INSERT INTO filas_fecha (fecha, tipo) VALUES ($1, $2)
+           ON CONFLICT (fecha, tipo) DO NOTHING`,
+          [fecha, 'A']
+        );
+        await db.query(
+          `INSERT INTO filas_fecha (fecha, tipo) VALUES ($1, $2)
+           ON CONFLICT (fecha, tipo) DO NOTHING`,
+          [fecha, 'C']
+        );
+      }
     }
-
-    const upsert = db.prepare(`
-      INSERT INTO inscripciones (fecha, comida, iniciales, opcion, updated_at)
-      VALUES (?, ?, ?, ?, datetime('now'))
-      ON CONFLICT(fecha, comida, iniciales) DO UPDATE SET opcion = excluded.opcion, updated_at = datetime('now')
-    `);
 
     const errors = [];
     let count = 0;
@@ -70,7 +72,15 @@ router.post('/', (req, res) => {
         continue;
       }
       try {
-        upsert.run(fecha, comida, iniciales, opcion);
+        await db.query(
+          `
+            INSERT INTO inscripciones (fecha, comida, iniciales, opcion, updated_at)
+            VALUES ($1, $2, $3, $4, now())
+            ON CONFLICT (fecha, comida, iniciales)
+            DO UPDATE SET opcion = EXCLUDED.opcion, updated_at = now()
+          `,
+          [fecha, comida, iniciales, opcion]
+        );
         count++;
       } catch (err) {
         errors.push(`${fecha} ${c.comida} ${iniciales}: ${err.message}`);

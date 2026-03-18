@@ -4,7 +4,7 @@ const db = require('../db');
 const router = express.Router();
 
 /** GET /api/misa?dias=YYYY-MM-DD,YYYY-MM-DD,... - Valores de Misa por fechas */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const { dias } = req.query;
     const fechas = dias ? dias.split(',').map(d => d.trim()).filter(Boolean) : [];
@@ -14,10 +14,10 @@ router.get('/', (req, res) => {
       return res.json(result);
     }
 
-    const placeholders = fechas.map(() => '?').join(',');
-    const rows = db.prepare(
-      `SELECT fecha, valor FROM misa WHERE fecha IN (${placeholders})`
-    ).all(...fechas);
+    const { rows } = await db.query(
+      `SELECT fecha, valor FROM misa WHERE fecha = ANY($1::text[])`,
+      [fechas]
+    );
 
     fechas.forEach(f => { result[f] = ''; });
     rows.forEach(r => {
@@ -32,17 +32,20 @@ router.get('/', (req, res) => {
 });
 
 /** PUT /api/misa - body: { dia, valor } */
-router.put('/', (req, res) => {
+router.put('/', async (req, res) => {
   try {
     const { dia, valor } = req.body;
     if (!dia) return res.status(400).json({ error: 'Falta dia' });
     const v = (valor ?? '').toString().trim().toUpperCase();
     const final = ['S', 'N', 'A'].includes(v) ? v : '';
 
-    db.prepare(`
-      INSERT INTO misa (fecha, valor, updated_at) VALUES (?, ?, datetime('now'))
-      ON CONFLICT(fecha) DO UPDATE SET valor = excluded.valor, updated_at = datetime('now')
-    `).run(dia, final);
+    await db.query(
+      `
+        INSERT INTO misa (fecha, valor, updated_at) VALUES ($1, $2, now())
+        ON CONFLICT (fecha) DO UPDATE SET valor = EXCLUDED.valor, updated_at = now()
+      `,
+      [dia, final]
+    );
 
     res.json({ success: true });
   } catch (e) {
