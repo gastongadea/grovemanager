@@ -41,6 +41,16 @@ async function migrate(db) {
     CREATE INDEX IF NOT EXISTS idx_inscripciones_fecha ON inscripciones(fecha);
     CREATE INDEX IF NOT EXISTS idx_inscripciones_iniciales ON inscripciones(iniciales);
     CREATE INDEX IF NOT EXISTS idx_inscripciones_lookup ON inscripciones(fecha, comida, iniciales);
+
+    -- Estado de sincronización (para resolver "última escritura")
+    CREATE TABLE IF NOT EXISTS sync_state (
+      id INTEGER PRIMARY KEY,
+      last_sheet_push_at TIMESTAMPTZ,
+      last_sheet_pull_at TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sync_state_updated_at ON sync_state(updated_at);
   `);
 }
 

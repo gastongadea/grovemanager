@@ -10,7 +10,8 @@ const cumpleanosRouter = require('./routes/cumpleanos');
 const sheetDataRouter = require('./routes/sheetData');
 const datesRouter = require('./routes/dates');
 const { migrate } = require('./migrate');
-const { seedDefaultUsers } = require('./seed');
+const { seedDefaultUsers, seedSyncState } = require('./seed');
+const syncRouter = require('./routes/sync');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -24,6 +25,7 @@ app.use('/api/misa', misaRouter);
 app.use('/api/cumpleanos', cumpleanosRouter);
 app.use('/api/sheet-data', sheetDataRouter);
 app.use('/api/dates', datesRouter);
+app.use('/api/sync', syncRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true });
@@ -32,6 +34,7 @@ app.get('/api/health', (req, res) => {
 async function start() {
   await migrate(db);
   await seedDefaultUsers(db);
+  await seedSyncState(db);
 
   app.listen(PORT, () => {
     console.log(`Backend Grovemgr escuchando en http://localhost:${PORT}`);

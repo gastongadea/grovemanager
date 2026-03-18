@@ -18,5 +18,16 @@ async function seedDefaultUsers(db) {
   console.log('Usuarios por defecto insertados:', defaultUsers.length);
 }
 
-module.exports = { seedDefaultUsers };
+async function seedSyncState(db) {
+  // Inicializa marcas si la tabla acaba de crearse
+  await db.query(
+    `
+      INSERT INTO sync_state (id, last_sheet_push_at, last_sheet_pull_at)
+      VALUES (1, to_timestamp(0), to_timestamp(0))
+      ON CONFLICT (id) DO NOTHING
+    `
+  );
+}
+
+module.exports = { seedDefaultUsers, seedSyncState };
 
