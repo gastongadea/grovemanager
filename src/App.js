@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import Modal from 'react-modal';
 import localStorageService from './services/localStorageService';
@@ -139,6 +139,7 @@ function App() {
   
   // Estado para usuarios dinámicos desde Google Sheets
   const [usuariosDinamicos, setUsuariosDinamicos] = useState([]);
+  const lastCellTapRef = useRef({});
 
   // Generar días (próximos 60 días desde hoy)
   useEffect(() => {
@@ -921,6 +922,13 @@ function App() {
       mostrarMensaje('Selecciona un usuario primero', 'error');
       return;
     }
+
+    // Evitar doble-tap/doble-click que termina desmarcando inmediatamente
+    const tapKey = `${dia}|${comida}|${valor}`;
+    const now = Date.now();
+    const last = lastCellTapRef.current[tapKey] || 0;
+    if (now - last < 250) return;
+    lastCellTapRef.current[tapKey] = now;
 
     if (!validarOpcion(valor, comida)) {
       mostrarMensaje('Opción no válida para esta comida', 'error');
