@@ -924,10 +924,12 @@ function App() {
     }
 
     // Evitar doble-tap/doble-click que termina desmarcando inmediatamente
-    const tapKey = `${dia}|${comida}|${valor}`;
+    // Nota: en mobile a veces llegan 2 eventos seguidos (touch/click) incluso con distinto "valor".
+    // Debounce por celda (día+comida) para evitar que se marque y se desmarque al instante.
+    const tapKey = `${dia}|${comida}`;
     const now = Date.now();
     const last = lastCellTapRef.current[tapKey] || 0;
-    if (now - last < 250) return;
+    if (now - last < 600) return;
     lastCellTapRef.current[tapKey] = now;
 
     if (!validarOpcion(valor, comida)) {
