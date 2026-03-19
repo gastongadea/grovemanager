@@ -205,6 +205,7 @@ router.post('/to-sheet', async (req, res) => {
 
   try {
     const days = Number(req.body?.days || 30);
+    const force = req.body?.force === true;
     if (!Number.isFinite(days) || days <= 0) {
       return res.status(400).json({ error: 'days inválido' });
     }
@@ -224,7 +225,7 @@ router.post('/to-sheet', async (req, res) => {
     for (let i = 0; i < days; i++) targetDates.add(addDaysIso(startIso, i));
 
     const syncRes = await db.query('SELECT last_sheet_push_at FROM sync_state WHERE id = 1');
-    const lastPushAt = syncRes.rows[0]?.last_sheet_push_at || new Date(0);
+    const lastPushAt = force ? new Date(0) : (syncRes.rows[0]?.last_sheet_push_at || new Date(0));
 
     const changedInsRes = await db.query(
       `
@@ -246,7 +247,13 @@ router.post('/to-sheet', async (req, res) => {
     );
 
     if (changedInsRes.rows.length === 0 && changedMisaRes.rows.length === 0) {
-      return res.json({ success: true, pushed: 0, message: 'Nada cambió para empujar' });
+      return res.json({
+        success: true,
+        pushed: 0,
+        message: 'Nada cambió para empujar',
+        force,
+        window: { startIso, endIso },
+      });
     }
 
     // Leer planilla (para ubicar filas/columnas)
@@ -375,6 +382,7 @@ router.post('/to-sheet', async (req, res) => {
       pushed: updates.length,
       applied: appliedCount,
       sheetName,
+      force,
       errors,
       writeRes,
     });
