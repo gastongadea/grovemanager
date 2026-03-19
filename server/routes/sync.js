@@ -331,17 +331,53 @@ router.post('/to-sheet', async (req, res) => {
       return res.json({ success: true, pushed: 0, errors });
     }
 
+    const sheetName = process.env.SYNC_SHEET_NAME || 'Data';
     const writeRes = await callAppsScriptAction({
       appsScriptUrl,
       sheetId,
       action: 'updateCells',
-      data: { sheetName: 'Data', updates },
+      data: { sheetName, updates },
     });
 
-    // Registrar push time
+    const writeOk = writeRes && (writeRes.success === true || writeRes.status === 'success');
+    const appliedCount =
+      (typeof writeRes.count === 'number' ? writeRes.count : null) ??
+      (typeof writeRes.data?.count === 'number' ? writeRes.data.count : null);
+
+    if (!writeOk) {
+      return res.status(502).json({
+        success: false,
+        error: 'Apps Script respondió error en updateCells',
+        sheetName,
+        pushed: 0,
+        errors,
+        writeRes,
+      });
+    }
+
+    // Si el script no informa count, al menos devolvemos writeRes y NO avanzamos el cursor de sync.
+    if (appliedCount == null) {
+      return res.status(502).json({
+        success: false,
+        error: 'Apps Script no devolvió count; no se puede confirmar escritura',
+        sheetName,
+        pushed: 0,
+        errors,
+        writeRes,
+      });
+    }
+
+    // Registrar push time SOLO si confirmamos escritura
     await db.query('UPDATE sync_state SET last_sheet_push_at = now() WHERE id = 1');
 
-    return res.json({ success: true, pushed: updates.length, errors, writeRes });
+    return res.json({
+      success: true,
+      pushed: updates.length,
+      applied: appliedCount,
+      sheetName,
+      errors,
+      writeRes,
+    });
   } catch (e) {
     return res.status(500).json({ error: e.message });
   }
