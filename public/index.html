@@ -41,17 +41,28 @@
     <noscript>Necesitas habilitar JavaScript para ejecutar esta aplicación.</noscript>
     <div id="root"></div>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker disabled (prevents blank screen after deploys) -->
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then((registration) => {
-              console.log('SW registrado: ', registration);
-            })
-            .catch((registrationError) => {
-              console.log('SW registro falló: ', registrationError);
-            });
+        window.addEventListener('load', async () => {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((r) => r.unregister()));
+          } catch (e) {
+            // ignore
+          }
+          try {
+            if (window.caches && caches.keys) {
+              const keys = await caches.keys();
+              await Promise.all(
+                keys
+                  .filter((k) => k.startsWith('limos-') || k.startsWith('workbox-'))
+                  .map((k) => caches.delete(k))
+              );
+            }
+          } catch (e) {
+            // ignore
+          }
         });
       }
     </script>
