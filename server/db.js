@@ -2,7 +2,7 @@
  * Postgres connection (pool) for Grovemgr backend.
  *
  * Requiere:
- * - DATABASE_URL=postgresql://user:pass@host:port/db
+ * - DATABASE_URL=postgresql://neondb_owner:npg_zi8SkWoyB4Ef@ep-patient-sky-ad2j28wd-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
  *
  * Nota: la creación de tablas/índices vive en `server/migrate.js`.
  */

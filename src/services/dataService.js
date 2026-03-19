@@ -6,6 +6,11 @@ import envLoader from '../config/envLoader';
 import googleSheetsService from './googleSheetsService';
 import backendApiService from './backendApiService';
 
+export const DATA_SOURCE = (() => {
+  const apiUrl = envLoader.getEnvVar('REACT_APP_API_URL') || process.env.REACT_APP_API_URL;
+  return apiUrl && apiUrl.trim() ? 'backend' : 'sheets';
+})();
+
 function getDataService() {
   const apiUrl = envLoader.getEnvVar('REACT_APP_API_URL') || process.env.REACT_APP_API_URL;
   if (apiUrl && apiUrl.trim()) {

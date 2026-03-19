@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { flushSync } from 'react-dom';
 import Modal from 'react-modal';
 import localStorageService from './services/localStorageService';
-import dataService from './services/dataService';
+import dataService, { DATA_SOURCE } from './services/dataService';
 import { formatearFecha, esFinDeSemana, agregarDias, diferenciaDias } from './utils/dateUtils';
 import StatsComponent from './components/StatsComponent';
 import GoogleSheetsTest from './components/GoogleSheetsTest';
@@ -2876,45 +2876,57 @@ function App() {
       />
 
       {/* Componente de Diagnóstico de Google Sheets */}
-      <GoogleSheetsTest 
-        isOpen={showGoogleSheetsTest} 
-        onClose={() => setShowGoogleSheetsTest(false)} 
-      />
+      {showGoogleSheetsTest && (
+        <GoogleSheetsTest
+          isOpen={showGoogleSheetsTest}
+          onClose={() => setShowGoogleSheetsTest(false)}
+        />
+      )}
 
       {/* Componente de Test de API de Google Sheets */}
-      <GoogleSheetsAPITest 
-        isOpen={showGoogleSheetsAPITest} 
-        onClose={() => setShowGoogleSheetsAPITest(false)} 
-      />
+      {showGoogleSheetsAPITest && (
+        <GoogleSheetsAPITest
+          isOpen={showGoogleSheetsAPITest}
+          onClose={() => setShowGoogleSheetsAPITest(false)}
+        />
+      )}
 
       {/* Componente de Demo de Google Sheets */}
-      <GoogleSheetsDemo 
-        isOpen={showGoogleSheetsDemo} 
-        onClose={() => setShowGoogleSheetsDemo(false)} 
-      />
+      {showGoogleSheetsDemo && (
+        <GoogleSheetsDemo
+          isOpen={showGoogleSheetsDemo}
+          onClose={() => setShowGoogleSheetsDemo(false)}
+        />
+      )}
 
       {/* Componente de Diagnóstico de Planilla */}
-      <SheetDiagnostic 
-        isOpen={showSheetDiagnostic} 
-        onClose={() => setShowSheetDiagnostic(false)} 
-      />
+      {showSheetDiagnostic && (
+        <SheetDiagnostic
+          isOpen={showSheetDiagnostic}
+          onClose={() => setShowSheetDiagnostic(false)}
+        />
+      )}
 
       {/* Componente de Debug de Sincronización */}
-      <SyncDebugger 
-        isOpen={showSyncDebugger} 
-        onClose={() => setShowSyncDebugger(false)}
-        syncStatus={syncStatus}
-        syncErrors={syncErrors}
-        useGoogleSheets={dataService.isConfigured()}
-        iniciales={iniciales}
-        seleccion={seleccion}
-      />
+      {showSyncDebugger && (
+        <SyncDebugger
+          isOpen={showSyncDebugger}
+          onClose={() => setShowSyncDebugger(false)}
+          syncStatus={syncStatus}
+          syncErrors={syncErrors}
+          useGoogleSheets={DATA_SOURCE === 'sheets'}
+          iniciales={iniciales}
+          seleccion={seleccion}
+        />
+      )}
 
       {/* Componente de Validador de Estructura de Planilla */}
-      <SheetStructureValidator 
-        isOpen={showSheetStructureValidator} 
-        onClose={() => setShowSheetStructureValidator(false)} 
-      />
+      {showSheetStructureValidator && (
+        <SheetStructureValidator
+          isOpen={showSheetStructureValidator}
+          onClose={() => setShowSheetStructureValidator(false)}
+        />
+      )}
 
       {/* Modal para mostrar datos de hoy */}
       <Modal
