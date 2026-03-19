@@ -153,11 +153,16 @@ async function callAppsScriptAction({ appsScriptUrl, sheetId, action, data }) {
   } finally {
     clearTimeout(t);
   }
-  const json = await res.json().catch(async () => {
-    const text = await res.text();
-    return { success: false, error: text };
-  });
-  return json;
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {
+      success: false,
+      status: res.status,
+      error: text || `Respuesta no-JSON (HTTP ${res.status})`,
+    };
+  }
 }
 
 function buildUserColumnMap(headerRow) {
